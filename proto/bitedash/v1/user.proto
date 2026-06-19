@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package bitedash.v1;
+
+option go_package = "internal/pb/bitedash/v1;bitedashv1";
+
+service UserService {
+    rpc GetUserByID(GetUserByIDRequest) returns (GetUserByIDResponse);
+    rpc GetMe(GetMeRequest) returns (GetMeResponse);
+}
+
+message GetUserByIDRequest {
+    string user_id = 1;
+}
+
+message GetUserByIDResponse {
+    User user = 1;
+}
+
+message User {
+    string id = 1;
+    string email = 2;
+    string created_at = 3;
+}
+
+message GetMeRequest {}
+
+message GetMeResponse {
+    User user = 1;
+}

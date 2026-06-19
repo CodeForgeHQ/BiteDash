@@ -1,0 +1,408 @@
+basePath: /
+definitions:
+  dto.AddCartItemRequest:
+    properties:
+      productID:
+        type: string
+      quantity:
+        minimum: 1
+        type: integer
+    required:
+    - productID
+    - quantity
+    type: object
+  dto.CartItemDto:
+    properties:
+      lineTotal:
+        type: number
+      name:
+        type: string
+      price:
+        type: number
+      productID:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  dto.CartResponse:
+    properties:
+      id:
+        type: string
+      items:
+        items:
+          $ref: '#/definitions/dto.CartItemDto'
+        type: array
+      itemsCount:
+        type: integer
+      totalAmount:
+        type: number
+    type: object
+  dto.CheckoutResponse:
+    properties:
+      itemsCount:
+        type: integer
+      orderID:
+        type: string
+      status:
+        type: string
+      totalAmount:
+        type: number
+    type: object
+  dto.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  dto.ListRestaurantsResponse:
+    properties:
+      limit:
+        type: integer
+      page:
+        type: integer
+      restaurants:
+        items:
+          $ref: '#/definitions/dto.RestaurantDetails'
+        type: array
+      total:
+        type: integer
+    type: object
+  dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.LoginResponse:
+    properties:
+      token:
+        type: string
+    type: object
+  dto.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  dto.Product:
+    properties:
+      available:
+        type: boolean
+      description:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+    type: object
+  dto.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  dto.RestaurantDetails:
+    properties:
+      address:
+        type: string
+      category:
+        type: string
+      parkingLot:
+        type: boolean
+      products:
+        items:
+          $ref: '#/definitions/dto.Product'
+        type: array
+      restaurantID:
+        type: string
+      restaurantName:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Backend API for BiteDash food delivery service
+  title: BiteDash API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Login a user with email and password
+      parameters:
+      - description: Login details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Access token
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Login a user
+      tags:
+      - auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Register a new user with email and password
+      parameters:
+      - description: Registration details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Access token
+          schema:
+            $ref: '#/definitions/dto.LoginResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "409":
+          description: Email already registered
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - auth
+  /cart:
+    get:
+      consumes:
+      - application/json
+      description: Get the current active cart for the user
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Active cart details
+          schema:
+            $ref: '#/definitions/dto.CartResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get active cart
+      tags:
+      - cart
+  /cart/items:
+    post:
+      consumes:
+      - application/json
+      description: Add a menu item to the user's cart
+      parameters:
+      - description: Cart item details
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/dto.AddCartItemRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Item added to cart
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Add item to cart
+      tags:
+      - cart
+  /info/restaurants:
+    get:
+      consumes:
+      - application/json
+      description: Sync restaurant data from external sources
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restaurants synced successfully
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Sync restaurants
+      tags:
+      - restaurants
+  /orders/make:
+    post:
+      description: Validates kitchen stock, reserves products and creates order
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.CheckoutResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Create order from active cart
+      tags:
+      - Orders
+  /products/sync:
+    post:
+      description: Sync product data from external sources
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Products synced successfully
+          schema:
+            $ref: '#/definitions/dto.MessageResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Sync products
+      tags:
+      - products
+  /restaurants:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of restaurants with optional search and category filters
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Number of items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Search term for restaurant name
+        in: query
+        name: search
+        type: string
+      - description: Category filter
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of restaurants
+          schema:
+            $ref: '#/definitions/dto.ListRestaurantsResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: List restaurants
+      tags:
+      - restaurants
+  /restaurants/{restaurantID}:
+    get:
+      consumes:
+      - application/json
+      description: Get details of a specific restaurant
+      parameters:
+      - description: Restaurant ID
+        in: path
+        name: restaurantID
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Restaurant details
+          schema:
+            $ref: '#/definitions/dto.RestaurantDetails'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Restaurant not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get restaurant details
+      tags:
+      - restaurants
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

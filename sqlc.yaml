@@ -1,15 +1,16 @@
-version: "2"
-sql:
-  - engine: postgresql
+version: "1"
+
+packages:
+  - name: db                       # Имя Go-пакета
+    path: internal/db/sqlc          # Куда генерировать Go-код
+    engine: postgresql              # Тип БД
     schema:
-      - internal/db/migrations/*.up.sql
+      - internal/db/migrations/*.up.sql   # Файлы миграций
     queries:
-      - internal/db/query/*.sql
-    gen:
-      go:
-        package: db
-        out: internal/db/query
-        sql_package: pgx/v5
-        emit_json_tags: true
-        emit_prepared_queries: false
-        emit_interface: true
+      - internal/db/query/*.sql          # SQL-запросы
+    emit_json_tags: true                 # Генерация json тегов
+    emit_prepared_queries: false         # Использовать prepared queries
+    emit_interface: true                 # Генерация интерфейса для тестов/моков
+    overrides:
+      - db_type: "uuid"                  # Переопределяем тип uuid
+        go_type: "github.com/google/uuid.UUID"
