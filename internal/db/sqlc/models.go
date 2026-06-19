@@ -5,10 +5,12 @@
 package db
 
 import (
+	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"time"
 
-	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/google/uuid"
 )
 
 type CartStatus string
@@ -142,72 +144,78 @@ func (ns NullPaymentStatus) Value() (driver.Value, error) {
 }
 
 type Cart struct {
-	ID        pgtype.UUID      `json:"id"`
-	UserID    pgtype.UUID      `json:"user_id"`
-	Status    CartStatus       `json:"status"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
-	UpdatedAt pgtype.Timestamp `json:"updated_at"`
+	ID        uuid.UUID  `json:"id"`
+	UserID    uuid.UUID  `json:"user_id"`
+	Status    CartStatus `json:"status"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 type CartItem struct {
-	ID        pgtype.UUID      `json:"id"`
-	CartID    pgtype.UUID      `json:"cart_id"`
-	ProductID pgtype.UUID      `json:"product_id"`
-	Quantity  int32            `json:"quantity"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
+	ID        uuid.UUID `json:"id"`
+	CartID    uuid.UUID `json:"cart_id"`
+	ProductID uuid.UUID `json:"product_id"`
+	Quantity  int32     `json:"quantity"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Order struct {
-	ID          pgtype.UUID      `json:"id"`
-	UserID      pgtype.UUID      `json:"user_id"`
-	Status      OrderStatus      `json:"status"`
-	TotalAmount pgtype.Numeric   `json:"total_amount"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	ID          uuid.UUID    `json:"id"`
+	UserID      uuid.UUID    `json:"user_id"`
+	Status      string       `json:"status"`
+	TotalAmount string       `json:"total_amount"`
+	CreatedAt   sql.NullTime `json:"created_at"`
+	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
 type OrderItem struct {
-	ID          pgtype.UUID    `json:"id"`
-	OrderID     pgtype.UUID    `json:"order_id"`
-	ProductID   pgtype.UUID    `json:"product_id"`
-	ProductName string         `json:"product_name"`
-	Price       pgtype.Numeric `json:"price"`
-	Quantity    int32          `json:"quantity"`
+	ID          uuid.UUID    `json:"id"`
+	OrderID     uuid.UUID    `json:"order_id"`
+	ProductID   uuid.UUID    `json:"product_id"`
+	ProductName string       `json:"product_name"`
+	UnitPrice   string       `json:"unit_price"`
+	Quantity    int32        `json:"quantity"`
+	LineTotal   string       `json:"line_total"`
+	CreatedAt   sql.NullTime `json:"created_at"`
 }
 
 type Payment struct {
-	ID        pgtype.UUID      `json:"id"`
-	OrderID   pgtype.UUID      `json:"order_id"`
-	Status    PaymentStatus    `json:"status"`
-	Provider  string           `json:"provider"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
+	ID        uuid.UUID     `json:"id"`
+	OrderID   uuid.UUID     `json:"order_id"`
+	Status    PaymentStatus `json:"status"`
+	Provider  string        `json:"provider"`
+	CreatedAt time.Time     `json:"created_at"`
 }
 
 type Product struct {
-	ID           pgtype.UUID      `json:"id"`
-	RestaurantID pgtype.UUID      `json:"restaurant_id"`
-	Name         string           `json:"name"`
-	Description  pgtype.Text      `json:"description"`
-	Price        pgtype.Numeric   `json:"price"`
-	IsAvailable  bool             `json:"is_available"`
-	CreatedAt    pgtype.Timestamp `json:"created_at"`
-	UpdatedAt    pgtype.Timestamp `json:"updated_at"`
+	ID              uuid.UUID      `json:"id"`
+	RestaurantID    uuid.UUID      `json:"restaurant_id"`
+	Name            string         `json:"name"`
+	Description     sql.NullString `json:"description"`
+	Price           string         `json:"price"`
+	IsAvailable     bool           `json:"is_available"`
+	CreatedAt       time.Time      `json:"created_at"`
+	UpdatedAt       time.Time      `json:"updated_at"`
+	ExternalID      sql.NullInt32  `json:"external_id"`
+	ImageUrl        sql.NullString `json:"image_url"`
+	KitchenQuantity int32          `json:"kitchen_quantity"`
 }
 
 type Restaurant struct {
-	ID          pgtype.UUID      `json:"id"`
-	ExternalID  pgtype.Int4      `json:"external_id"`
-	Name        string           `json:"name"`
-	Description pgtype.Text      `json:"description"`
-	Category    string           `json:"category"`
-	Address     string           `json:"address"`
-	CreatedAt   pgtype.Timestamp `json:"created_at"`
-	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
+	Restaurantid   uuid.UUID      `json:"restaurantid"`
+	Externalid     int32          `json:"externalid"`
+	Restaurantname string         `json:"restaurantname"`
+	Description    sql.NullString `json:"description"`
+	Category       string         `json:"category"`
+	Address        string         `json:"address"`
+	Parkinglot     bool           `json:"parkinglot"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      time.Time      `json:"updated_at"`
 }
 
 type User struct {
-	ID        pgtype.UUID      `json:"id"`
-	Email     string           `json:"email"`
-	Password  string           `json:"password"`
-	CreatedAt pgtype.Timestamp `json:"created_at"`
+	ID           uuid.UUID `json:"id"`
+	Email        string    `json:"email"`
+	PasswordHash string    `json:"password_hash"`
+	CreatedAt    time.Time `json:"created_at"`
 }

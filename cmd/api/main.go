@@ -1,43 +1,34 @@
 package main
 
 import (
+	_ "bitedash/docs"
 	"context"
-	"log"
+	"log/slog"
 	"os"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib" // Регистрация драйвера pgx для database/sql
 
-	db "bitedash/internal/db/query"
-	"bitedash/internal/server"
+	"bitedash/internal/app"
 )
 
+// @title BiteDash API
+// @version 1.0
+// @description Backend API for BiteDash food delivery service
+// @host localhost:8080
+// @BasePath /
+// @schemes http
+
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
 func main() {
-	ctx := context.Background()
-
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "postgres://postgres:postgres@localhost:5433/food_delivery?sslmode=disable"
-	}
-
-	pool, err := pgxpool.New(ctx, dbURL)
+	a, err := app.Build(context.Background())
 	if err != nil {
-		log.Fatal("cannot connect to db:", err)
+		slog.Error("failed to initialize application", "error", err)
+		os.Exit(1)
 	}
-	defer pool.Close()
-
-	if err := pool.Ping(ctx); err != nil {
-		log.Fatal("db ping failed:", err)
-	}
-
-	log.Println("Connected to database")
-
-	queries := db.New(pool)
-
-	srv := server.NewServer(pool, queries)
-
-	log.Println("Starting server on :8080")
-
-	if err := srv.Run(":8080"); err != nil {
-		log.Fatal(err)
+	if err := a.Run(); err != nil {
+		slog.Error("application stopped with error", "error", err)
+		os.Exit(1)
 	}
 }
