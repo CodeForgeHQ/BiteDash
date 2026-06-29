@@ -49,17 +49,16 @@ func FetchRestaurants(ctx context.Context) ([]Restaurant, error) {
 				return nil, err
 			}
 		} else {
+			defer func() { _ = resp.Body.Close() }()
+
 			if resp.StatusCode == http.StatusOK {
 				var restaurants []Restaurant
 				if err := json.NewDecoder(resp.Body).Decode(&restaurants); err != nil {
-					resp.Body.Close()
 					return nil, err
 				}
-				resp.Body.Close()
 				return restaurants, nil
 			}
 
-			resp.Body.Close()
 			lastErr = fmt.Errorf("api returned status: %d", resp.StatusCode)
 			if !isRetryableStatus(resp.StatusCode) {
 				return nil, lastErr
@@ -101,7 +100,7 @@ func FetchAllMenuItems(ctx context.Context) ([]MenuItem, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("fetch menu items: unexpected status %d", resp.StatusCode)

@@ -1,12 +1,13 @@
 package service
 
 import (
-	db "bitedash/internal/db/sqlc"
-	"bitedash/internal/dto"
 	"context"
 	"database/sql"
 	"errors"
 	"strconv"
+
+	db "bitedash/internal/db/sqlc"
+	"bitedash/internal/dto"
 
 	"github.com/google/uuid"
 )
@@ -16,12 +17,18 @@ type CartService struct {
 	db      *sql.DB
 }
 
+func NewCartService(q *db.Queries, db *sql.DB) *CartService {
+	return &CartService{queries: q, db: db}
+}
+
 func (s *CartService) AddItem(ctx context.Context, userID uuid.UUID, req dto.AddCartItemRequest) error {
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	qtx := s.queries.WithTx(tx)
 
@@ -83,10 +90,6 @@ func (s *CartService) AddItem(ctx context.Context, userID uuid.UUID, req dto.Add
 	return tx.Commit()
 }
 
-func NewCartService(q *db.Queries, db *sql.DB) *CartService {
-	return &CartService{queries: q, db: db}
-}
-
 func (s *CartService) GetCart(ctx context.Context, cartID uuid.UUID) (*dto.CartResponse, error) {
 	cart, err := s.queries.GetActiveCartByUser(ctx, cartID)
 	if err != nil {
@@ -130,4 +133,39 @@ func (s *CartService) GetCart(ctx context.Context, cartID uuid.UUID) (*dto.CartR
 		resp.ItemsCount += row.Quantity
 	}
 	return resp, nil
+}
+
+func (s *CartService) ClearCart(ctx context.Context, userID uuid.UUID) error {
+	cart, err := s.queries.GetActiveCartByUser(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrCartNotFound
+		}
+		return err
+	}
+
+	return s.queries.ClearCart(ctx, cart.ID)
+}
+
+func (s *CartService) RemoveCartItem(ctx context.Context, userID, productID uuid.UUID) error {
+	cart, err := s.queries.GetActiveCartByUser(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrCartNotFound
+		}
+		return err
+	}
+
+	rowsAffected, err := s.queries.RemoveCartItem(ctx, db.RemoveCartItemParams{
+		CartID:    cart.ID,
+		ProductID: productID,
+	})
+	if err != nil {
+		return err
+	}
+	if rowsAffected == 0 {
+		return ErrCartItemNotFound
+	}
+
+	return nil
 }

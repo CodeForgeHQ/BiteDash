@@ -135,7 +135,7 @@ func TestCartService_AddItem_productNotFound(t *testing.T) {
 		Quantity:  1,
 	})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrProductNotFound)
+	require.ErrorIs(t, err, ErrProductNotFound)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -157,7 +157,7 @@ func TestCartService_AddItem_productNotAvailable(t *testing.T) {
 		Quantity:  1,
 	})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrProductNotAvailable)
+	require.ErrorIs(t, err, ErrProductNotAvailable)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -186,7 +186,7 @@ func TestCartService_AddItem_insufficientStock(t *testing.T) {
 		Quantity:  3,
 	})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrInsufficientStock)
+	require.ErrorIs(t, err, ErrInsufficientStock)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -204,7 +204,7 @@ func TestCartService_GetCart_emptyWhenNoCart(t *testing.T) {
 	require.NoError(t, err)
 	assert.Empty(t, resp.CartID)
 	assert.Empty(t, resp.Items)
-	assert.Equal(t, float64(0), resp.TotalAmount)
+	assert.InDelta(t, float64(0), resp.TotalAmount, 0.001)
 	assert.Equal(t, int32(0), resp.ItemsCount)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -231,10 +231,10 @@ func TestCartService_GetCart_withItems(t *testing.T) {
 	assert.Equal(t, cartID.String(), resp.CartID)
 	require.Len(t, resp.Items, 1)
 	assert.Equal(t, productID.String(), resp.Items[0].ProductID)
-	assert.Equal(t, 10.0, resp.Items[0].Price)
+	assert.InDelta(t, 10.0, resp.Items[0].Price, 0.001)
 	assert.Equal(t, int32(2), resp.Items[0].Quantity)
-	assert.Equal(t, 20.0, resp.Items[0].LineTotal)
-	assert.Equal(t, 20.0, resp.TotalAmount)
+	assert.InDelta(t, 20.0, resp.Items[0].LineTotal, 0.001)
+	assert.InDelta(t, 20.0, resp.TotalAmount, 0.001)
 	assert.Equal(t, int32(2), resp.ItemsCount)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
@@ -257,5 +257,94 @@ func TestCartService_GetCart_invalidPrice(t *testing.T) {
 
 	_, err := svc.GetCart(context.Background(), userID)
 	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCartService_ClearCart(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	cartID := uuid.New()
+	svc, mock, _ := newCartServiceWithMock(t)
+
+	mock.ExpectQuery(`SELECT id, user_id, status, created_at, updated_at`).
+		WithArgs(userID).
+		WillReturnRows(cartRow(cartID, userID))
+	mock.ExpectExec(`DELETE FROM cart_items`).
+		WithArgs(cartID).
+		WillReturnResult(sqlmock.NewResult(0, 2))
+
+	err := svc.ClearCart(context.Background(), userID)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCartService_ClearCart_cartNotFound(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	svc, mock, _ := newCartServiceWithMock(t)
+
+	mock.ExpectQuery(`SELECT id, user_id, status, created_at, updated_at`).
+		WithArgs(userID).
+		WillReturnError(sql.ErrNoRows)
+
+	err := svc.ClearCart(context.Background(), userID)
+	require.ErrorIs(t, err, ErrCartNotFound)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCartService_RemoveCartItem(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	cartID := uuid.New()
+	productID := uuid.New()
+	svc, mock, _ := newCartServiceWithMock(t)
+
+	mock.ExpectQuery(`SELECT id, user_id, status, created_at, updated_at`).
+		WithArgs(userID).
+		WillReturnRows(cartRow(cartID, userID))
+	mock.ExpectExec(`DELETE FROM cart_items`).
+		WithArgs(cartID, productID).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err := svc.RemoveCartItem(context.Background(), userID, productID)
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCartService_RemoveCartItem_itemNotFound(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	cartID := uuid.New()
+	productID := uuid.New()
+	svc, mock, _ := newCartServiceWithMock(t)
+
+	mock.ExpectQuery(`SELECT id, user_id, status, created_at, updated_at`).
+		WithArgs(userID).
+		WillReturnRows(cartRow(cartID, userID))
+	mock.ExpectExec(`DELETE FROM cart_items`).
+		WithArgs(cartID, productID).
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err := svc.RemoveCartItem(context.Background(), userID, productID)
+	require.ErrorIs(t, err, ErrCartItemNotFound)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCartService_RemoveCartItem_cartNotFound(t *testing.T) {
+	t.Parallel()
+
+	userID := uuid.New()
+	svc, mock, _ := newCartServiceWithMock(t)
+
+	mock.ExpectQuery(`SELECT id, user_id, status, created_at, updated_at`).
+		WithArgs(userID).
+		WillReturnError(sql.ErrNoRows)
+
+	err := svc.RemoveCartItem(context.Background(), userID, uuid.New())
+	require.ErrorIs(t, err, ErrCartNotFound)
 	require.NoError(t, mock.ExpectationsWereMet())
 }

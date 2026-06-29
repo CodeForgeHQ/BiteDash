@@ -23,15 +23,23 @@ func TestRestaurantService_ListRestaurants_paginationDefaults(t *testing.T) {
 			captured = arg
 			return []db.ListRestaurantsRow{}, nil
 		},
+		countRestaurants: func(ctx context.Context, arg db.CountRestaurantsParams) (int64, error) {
+			assert.Equal(t, "pizza", arg.Column1)
+			assert.Equal(t, "italian", arg.Column2)
+			return 42, nil
+		},
 	}
 
 	svc := NewRestaurantService(mock)
-	_, err := svc.ListRestaurants(context.Background(), "pizza", "italian", 0, 0)
+	response, err := svc.ListRestaurants(context.Background(), "pizza", "italian", 0, 0)
 	require.NoError(t, err)
 	assert.Equal(t, int32(20), captured.Limit)
 	assert.Equal(t, int32(0), captured.Offset)
 	assert.Equal(t, "pizza", captured.Column1)
 	assert.Equal(t, "italian", captured.Column2)
+	assert.Equal(t, int32(1), response.Page)
+	assert.Equal(t, int32(20), response.Limit)
+	assert.Equal(t, int64(42), response.Total)
 }
 
 func TestRestaurantService_ListRestaurants_capsLimit(t *testing.T) {
@@ -42,6 +50,9 @@ func TestRestaurantService_ListRestaurants_capsLimit(t *testing.T) {
 		listRestaurants: func(ctx context.Context, arg db.ListRestaurantsParams) ([]db.ListRestaurantsRow, error) {
 			captured = arg
 			return nil, nil
+		},
+		countRestaurants: func(ctx context.Context, arg db.CountRestaurantsParams) (int64, error) {
+			return 0, nil
 		},
 	}
 
@@ -85,7 +96,7 @@ func TestRestaurantService_GetRestaurantDetails_success(t *testing.T) {
 	assert.Equal(t, "Pizza Place", details.Name)
 	require.Len(t, details.Products, 1)
 	assert.Equal(t, productID.String(), details.Products[0].ID)
-	assert.Equal(t, 12.5, details.Products[0].Price)
+	assert.InDelta(t, 12.5, details.Products[0].Price, 0.001)
 	assert.True(t, details.Products[0].Available)
 }
 
@@ -101,7 +112,22 @@ func TestRestaurantService_GetRestaurantDetails_notFound(t *testing.T) {
 	svc := NewRestaurantService(mock)
 	_, err := svc.GetRestaurantDetails(context.Background(), uuid.New())
 	require.Error(t, err)
-	assert.ErrorIs(t, err, sql.ErrNoRows)
+	assert.ErrorIs(t, err, ErrRestaurantNotFound)
+}
+
+func TestRestaurantService_GetRestaurantDetails_mapsSQLNotFound(t *testing.T) {
+	t.Parallel()
+
+	mock := &mockRestaurantQuerier{
+		getRestaurantWithProducts: func(ctx context.Context, id uuid.UUID) ([]db.GetRestaurantWithProductsRow, error) {
+			return nil, sql.ErrNoRows
+		},
+	}
+
+	svc := NewRestaurantService(mock)
+	_, err := svc.GetRestaurantDetails(context.Background(), uuid.New())
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrRestaurantNotFound)
 }
 
 func TestRestaurantService_GetRestaurantDetails_invalidPrice(t *testing.T) {
@@ -129,7 +155,7 @@ func TestRestaurantService_GetRestaurantDetails_invalidPrice(t *testing.T) {
 	details, err := svc.GetRestaurantDetails(context.Background(), restaurantID)
 	require.NoError(t, err)
 	require.Len(t, details.Products, 1)
-	assert.Equal(t, float64(0), details.Products[0].Price)
+	assert.InDelta(t, float64(0), details.Products[0].Price, 0.001)
 }
 
 func TestRestaurantService_SyncRestaurants_success(t *testing.T) {

@@ -1,10 +1,11 @@
 package main
 
 import (
-	_ "bitedash/docs"
 	"context"
 	"log/slog"
 	"os"
+
+	_ "bitedash/docs"
 
 	_ "github.com/jackc/pgx/v5/stdlib" // Регистрация драйвера pgx для database/sql
 

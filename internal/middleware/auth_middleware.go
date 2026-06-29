@@ -4,27 +4,33 @@ import (
 	"net/http"
 	"strings"
 
-	"bitedash/internal/pkg/auth"
+	authpkg "bitedash/internal/pkg/auth"
 
 	"github.com/gin-gonic/gin"
 )
 
+const UserIDKey = "userID"
+
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		const bearerPrefix = "Bearer "
 		authHeader := c.GetHeader("Authorization")
-		if !strings.HasPrefix(authHeader, bearerPrefix) {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization header"})
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		if tokenString == authHeader || tokenString == "" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "missing token",
+			})
 			return
 		}
 
-		userID, err := auth.ParseUserIDFromToken(strings.TrimPrefix(authHeader, bearerPrefix))
+		userID, err := authpkg.ParseUserIDFromToken(tokenString)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid token",
+			})
 			return
 		}
 
-		c.Set("userID", userID.String())
+		c.Set(UserIDKey, userID.String())
 		c.Next()
 	}
 }

@@ -55,8 +55,10 @@ func newDIContainer(ctx context.Context, cfg *config.Config) (*diContainer, erro
 		ProductHandler:    handler.NewProductHandler(productService),
 	})
 	grpcServer := grpcserver.NewServer(grpcserver.Deps{
-		UserHandler:  grpchandler.NewUserHandler(authService),
-		OrderHandler: grpchandler.NewOrderHandler(orderService),
+		UserHandler:       grpchandler.NewUserHandler(authService),
+		OrderHandler:      grpchandler.NewOrderHandler(orderService),
+		RestaurantHandler: grpchandler.NewRestaurantHandler(restaurantService),
+		CartHandler:       grpchandler.NewCartHandler(cartService),
 	})
 
 	return &diContainer{db: pool, httpServer: httpServer, grpcServer: grpcServer}, nil

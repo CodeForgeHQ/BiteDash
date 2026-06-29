@@ -39,9 +39,15 @@ func AuthUnaryInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-func isPublicMethod(method string) bool {
-	_, ok := publicMethods[method]
-	return ok
+func isPublicMethod(fullMethod string) bool {
+	switch fullMethod {
+	case "/bitedash.v1.UserService/GetUserByID",
+		"/bitedash.v1.RestaurantService/ListRestaurants",
+		"/bitedash.v1.RestaurantService/GetRestaurantByID":
+		return true
+	default:
+		return false
+	}
 }
 
 func userIDFromMetadata(ctx context.Context) (uuid.UUID, error) {

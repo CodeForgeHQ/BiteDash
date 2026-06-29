@@ -26,7 +26,7 @@ func runGetMe(args []string) error {
 	if err != nil {
 		return fmt.Errorf("create grpc clients: %w", err)
 	}
-	defer clients.Close()
+	defer func() { _ = clients.Close() }()
 
 	ctx, cancel := contextWithToken(*token, *timeout)
 	defer cancel()
@@ -67,7 +67,7 @@ func runGetUser(args []string) error {
 	if err != nil {
 		return fmt.Errorf("create grpc clients: %w", err)
 	}
-	defer clients.Close()
+	defer func() { _ = clients.Close() }()
 
 	ctx, cancel := contextWithToken("", *timeout)
 	defer cancel()

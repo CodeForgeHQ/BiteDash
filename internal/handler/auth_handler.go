@@ -1,10 +1,11 @@
 package handler
 
 import (
-	"bitedash/internal/dto"
-	"bitedash/internal/service"
 	"errors"
 	"net/http"
+
+	"bitedash/internal/dto"
+	"bitedash/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

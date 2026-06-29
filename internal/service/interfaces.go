@@ -18,6 +18,7 @@ type authQuerier interface {
 type restaurantQuerier interface {
 	UpsertRestaurant(ctx context.Context, arg db.UpsertRestaurantParams) error
 	ListRestaurants(ctx context.Context, arg db.ListRestaurantsParams) ([]db.ListRestaurantsRow, error)
+	CountRestaurants(ctx context.Context, arg db.CountRestaurantsParams) (int64, error)
 	GetRestaurantWithProducts(ctx context.Context, restaurantid uuid.UUID) ([]db.GetRestaurantWithProductsRow, error)
 }
 

@@ -14,6 +14,7 @@ var errMockNotConfigured = errors.New("mock: handler not configured")
 type mockRestaurantQuerier struct {
 	upsertRestaurant          func(ctx context.Context, arg db.UpsertRestaurantParams) error
 	listRestaurants           func(ctx context.Context, arg db.ListRestaurantsParams) ([]db.ListRestaurantsRow, error)
+	countRestaurants          func(ctx context.Context, arg db.CountRestaurantsParams) (int64, error)
 	getRestaurantWithProducts func(ctx context.Context, restaurantid uuid.UUID) ([]db.GetRestaurantWithProductsRow, error)
 }
 
@@ -29,6 +30,13 @@ func (m *mockRestaurantQuerier) ListRestaurants(ctx context.Context, arg db.List
 		return m.listRestaurants(ctx, arg)
 	}
 	return nil, errMockNotConfigured
+}
+
+func (m *mockRestaurantQuerier) CountRestaurants(ctx context.Context, arg db.CountRestaurantsParams) (int64, error) {
+	if m.countRestaurants != nil {
+		return m.countRestaurants(ctx, arg)
+	}
+	return 0, errMockNotConfigured
 }
 
 func (m *mockRestaurantQuerier) GetRestaurantWithProducts(ctx context.Context, restaurantid uuid.UUID) ([]db.GetRestaurantWithProductsRow, error) {

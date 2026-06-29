@@ -29,6 +29,18 @@ func main() {
 		err = runGetOrder(os.Args[2:])
 	case "watch-order":
 		err = runWatchOrder(os.Args[2:])
+	case "list-restaurants":
+		err = runListRestaurants(os.Args[2:])
+	case "get-restaurant":
+		err = runGetRestaurant(os.Args[2:])
+	case "add-cart-item":
+		err = runAddCartItem(os.Args[2:])
+	case "get-cart":
+		err = runGetCart(os.Args[2:])
+	case "remove-cart-item":
+		err = runRemoveCartItem(os.Args[2:])
+	case "clear-cart":
+		err = runClearCart(os.Args[2:])
 	default:
 		printUsage()
 		os.Exit(1)
@@ -52,7 +64,12 @@ Commands:
   list-orders   List current user's orders
   get-order     Get order by ID
   watch-order   Watch order status stream
-
+  list-restaurants List restaurants
+  get-restaurant Get restaurant by ID
+  add-cart-item   Add item to cart
+  get-cart        Get cart by ID
+  remove-cart-item Remove item from cart
+  clear-cart      Clear cart
 Examples:
   grpc-client get-me --token "ACCESS_TOKEN"
   grpc-client get-user --user-id "USER_ID"

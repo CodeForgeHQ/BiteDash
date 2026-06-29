@@ -11,6 +11,16 @@ import (
 	"github.com/google/uuid"
 )
 
+const clearCart = `-- name: ClearCart :exec
+DELETE FROM cart_items
+WHERE cart_id = $1
+`
+
+func (q *Queries) ClearCart(ctx context.Context, cartID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, clearCart, cartID)
+	return err
+}
+
 const createCart = `-- name: CreateCart :one
 INSERT INTO carts (
     id,
@@ -184,6 +194,25 @@ func (q *Queries) GetCartItemsWithProducts(ctx context.Context, cartID uuid.UUID
 		return nil, err
 	}
 	return items, nil
+}
+
+const removeCartItem = `-- name: RemoveCartItem :execrows
+DELETE FROM cart_items
+WHERE cart_id = $1
+  AND product_id = $2
+`
+
+type RemoveCartItemParams struct {
+	CartID    uuid.UUID `json:"cart_id"`
+	ProductID uuid.UUID `json:"product_id"`
+}
+
+func (q *Queries) RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, removeCartItem, arg.CartID, arg.ProductID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const upsertCartItem = `-- name: UpsertCartItem :one

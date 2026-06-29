@@ -45,10 +45,16 @@ ON CONFLICT (externalID) DO UPDATE SET
 -- name: ListRestaurants :many
 SELECT restaurantID, externalID, restaurantName, address, category, parkingLot, created_at
 FROM restaurants
-WHERE ($1::TEXT IS NULL OR restaurantName ILIKE '%' || $1 || '%')
-  AND ($2::TEXT IS NULL OR category = $2)
+WHERE ($1::TEXT = '' OR restaurantName ILIKE '%' || $1 || '%')
+  AND ($2::TEXT = '' OR category = $2)
 ORDER BY restaurantName
 LIMIT $3 OFFSET $4;
+
+-- name: CountRestaurants :one
+SELECT COUNT(*)
+FROM restaurants
+WHERE ($1::TEXT = '' OR restaurantName ILIKE '%' || $1 || '%')
+  AND ($2::TEXT = '' OR category = $2);
 
 -- name: GetRestaurantByExternalID :one
 SELECT restaurantID, externalID, restaurantName, description, category, address, parkingLot, created_at, updated_at

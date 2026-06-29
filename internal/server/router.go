@@ -2,7 +2,6 @@ package server
 
 import (
 	"database/sql"
-	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,9 +33,12 @@ func NewServer(deps Deps) *Server {
 	}
 
 	router := gin.New()
-	router.Use(middleware.RequestID())
-	router.Use(middleware.RequestLogger(slog.Default()))
-	router.Use(gin.Recovery())
+	router.Use(
+		middleware.Recovery(),
+		middleware.RequestIDMiddleware(),
+		middleware.Logger(),
+		middleware.RateLimit(middleware.NewIPLimiter(10, 20)),
+	)
 
 	// Health check endpoint
 	router.GET("/health", s.health)
@@ -102,6 +104,8 @@ func (s *Server) setupRoutes(router *gin.Engine, deps Deps) {
 	{
 		cart.POST("/items", deps.CartHandler.AddItem)
 		cart.GET("", deps.CartHandler.GetCart)
+		cart.DELETE("", deps.CartHandler.ClearCart)
+		cart.DELETE("/items/:productID", deps.CartHandler.RemoveCartItem)
 	}
 
 	order := router.Group("/orders")

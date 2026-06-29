@@ -8,6 +8,7 @@ import (
 	"bitedash/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type CartHandler struct {
@@ -83,4 +84,73 @@ func (h *CartHandler) GetCart(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, cart)
+}
+
+// ClearCart godoc
+// @Summary Clear active cart
+// @Description Remove all items from the current user's active cart
+// @Tags cart
+// @Produce json
+// @Success 204 "Cart cleared"
+// @Failure 401 {object} dto.ErrorResponse "Unauthorized"
+// @Failure 404 {object} dto.ErrorResponse "Cart not found"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /cart [delete]
+func (h *CartHandler) ClearCart(c *gin.Context) {
+	userID, ok := authenticatedUserID(c)
+	if !ok {
+		return
+	}
+
+	if err := h.service.ClearCart(c.Request.Context(), userID); err != nil {
+		if errors.Is(err, service.ErrCartNotFound) {
+			respondError(c, http.StatusNotFound, "cart not found")
+			return
+		}
+		respondInternalError(c, "failed to clear cart", err)
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+// RemoveCartItem godoc
+// @Summary Remove item from active cart
+// @Description Remove a product from the current user's active cart
+// @Tags cart
+// @Produce json
+// @Param productID path string true "Product ID"
+// @Success 204 "Cart item removed"
+// @Failure 400 {object} dto.ErrorResponse "Invalid product ID"
+// @Failure 401 {object} dto.ErrorResponse "Unauthorized"
+// @Failure 404 {object} dto.ErrorResponse "Cart or cart item not found"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Security BearerAuth
+// @Router /cart/items/{productID} [delete]
+func (h *CartHandler) RemoveCartItem(c *gin.Context) {
+	productID, err := uuid.Parse(c.Param("productID"))
+	if err != nil {
+		respondBadRequest(c, "invalid product ID")
+		return
+	}
+
+	userID, ok := authenticatedUserID(c)
+	if !ok {
+		return
+	}
+
+	if err := h.service.RemoveCartItem(c.Request.Context(), userID, productID); err != nil {
+		switch {
+		case errors.Is(err, service.ErrCartNotFound):
+			respondError(c, http.StatusNotFound, "cart not found")
+		case errors.Is(err, service.ErrCartItemNotFound):
+			respondError(c, http.StatusNotFound, "cart item not found")
+		default:
+			respondInternalError(c, "failed to remove cart item", err)
+		}
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }

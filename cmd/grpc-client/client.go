@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	bitedashv1 "bitedash/internal/pb/bitedash/v1"
@@ -14,9 +15,11 @@ import (
 const defaultGRPCAddr = "127.0.0.1:9090"
 
 type grpcClients struct {
-	conn        *grpc.ClientConn
-	userClient  bitedashv1.UserServiceClient
-	orderClient bitedashv1.OrderServiceClient
+	conn             *grpc.ClientConn
+	userClient       bitedashv1.UserServiceClient
+	orderClient      bitedashv1.OrderServiceClient
+	restaurantClient bitedashv1.RestaurantServiceClient
+	cartClient       bitedashv1.CartServiceClient
 }
 
 func newGRPCClients(addr string) (*grpcClients, error) {
@@ -33,9 +36,11 @@ func newGRPCClients(addr string) (*grpcClients, error) {
 	}
 
 	return &grpcClients{
-		conn:        conn,
-		userClient:  bitedashv1.NewUserServiceClient(conn),
-		orderClient: bitedashv1.NewOrderServiceClient(conn),
+		conn:             conn,
+		userClient:       bitedashv1.NewUserServiceClient(conn),
+		orderClient:      bitedashv1.NewOrderServiceClient(conn),
+		restaurantClient: bitedashv1.NewRestaurantServiceClient(conn),
+		cartClient:       bitedashv1.NewCartServiceClient(conn),
 	}, nil
 }
 
@@ -45,6 +50,14 @@ func (c *grpcClients) Close() error {
 
 func contextWithToken(token string, timeout time.Duration) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+
+	requestID := newClientRequestID()
+
+	ctx = metadata.AppendToOutgoingContext(
+		ctx,
+		"x-request-id",
+		requestID,
+	)
 
 	if token == "" {
 		return ctx, cancel
@@ -57,4 +70,8 @@ func contextWithToken(token string, timeout time.Duration) (context.Context, con
 	)
 
 	return ctx, cancel
+}
+
+func newClientRequestID() string {
+	return fmt.Sprintf("grpc-client-%d", time.Now().UnixNano())
 }

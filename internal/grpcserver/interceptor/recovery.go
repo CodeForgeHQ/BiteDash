@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func RecoveryUnaryInterceptor() grpc.UnaryServerInterceptor {
+func RecoveryUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -18,7 +18,7 @@ func RecoveryUnaryInterceptor() grpc.UnaryServerInterceptor {
 	) (resp any, err error) {
 		defer func() {
 			if r := recover(); r != nil {
-				slog.Error(
+				logger.Error(
 					"grpc panic recovered",
 					"method", info.FullMethod,
 					"panic", r,

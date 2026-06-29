@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func LoggingUnaryInterceptor() grpc.UnaryServerInterceptor {
+func LoggingUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
 		req any,
@@ -20,16 +20,37 @@ func LoggingUnaryInterceptor() grpc.UnaryServerInterceptor {
 
 		resp, err := handler(ctx, req)
 
-		st := status.Code(err)
+		duration := time.Since(startedAt)
 
-		slog.Info(
-			"grpc request completed",
+		attrs := []any{
 			"method", info.FullMethod,
-			"code", st.String(),
-			"duration", time.Since(startedAt).String(),
-		)
+			"duration", duration.String(),
+		}
 
-		return resp, err
+		if requestID, ok := RequestIDFromContext(ctx); ok {
+			attrs = append(attrs, "request_id", requestID)
+		}
+
+		if userID, ok := UserIDFromContext(ctx); ok {
+			attrs = append(attrs, "user_id", userID.String())
+		}
+
+		if err != nil {
+			st, _ := status.FromError(err)
+
+			attrs = append(attrs,
+				"code", st.Code().String(),
+				"message", st.Message(),
+			)
+
+			logger.Warn("grpc request failed", attrs...)
+
+			return nil, err
+		}
+
+		logger.Info("grpc request completed", attrs...)
+
+		return resp, nil
 	}
 }
 
@@ -46,23 +67,35 @@ func LoggingStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor 
 
 		duration := time.Since(startedAt)
 
+		ctx := stream.Context()
+
+		attrs := []any{
+			"method", info.FullMethod,
+			"duration", duration.String(),
+		}
+
+		if requestID, ok := RequestIDFromContext(ctx); ok {
+			attrs = append(attrs, "request_id", requestID)
+		}
+
+		if userID, ok := UserIDFromContext(ctx); ok {
+			attrs = append(attrs, "user_id", userID.String())
+		}
+
 		if err != nil {
 			st, _ := status.FromError(err)
 
-			logger.Warn("grpc stream failed",
-				"method", info.FullMethod,
+			attrs = append(attrs,
 				"code", st.Code().String(),
 				"message", st.Message(),
-				"duration", duration.String(),
 			)
+
+			logger.Warn("grpc stream failed", attrs...)
 
 			return err
 		}
 
-		logger.Info("grpc stream completed",
-			"method", info.FullMethod,
-			"duration", duration.String(),
-		)
+		logger.Info("grpc stream completed", attrs...)
 
 		return nil
 	}

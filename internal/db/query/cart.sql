@@ -57,3 +57,12 @@ ORDER BY p.name;
 -- name: DeleteCartItemsByCartID :exec
 DELETE FROM cart_items
 WHERE cart_id = $1;
+
+-- name: ClearCart :exec
+DELETE FROM cart_items
+WHERE cart_id = $1;
+
+-- name: RemoveCartItem :execrows
+DELETE FROM cart_items
+WHERE cart_id = $1
+  AND product_id = $2;

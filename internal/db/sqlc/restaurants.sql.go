@@ -13,6 +13,25 @@ import (
 	"github.com/google/uuid"
 )
 
+const countRestaurants = `-- name: CountRestaurants :one
+SELECT COUNT(*)
+FROM restaurants
+WHERE ($1::TEXT = '' OR restaurantName ILIKE '%' || $1 || '%')
+  AND ($2::TEXT = '' OR category = $2)
+`
+
+type CountRestaurantsParams struct {
+	Column1 string `json:"column_1"`
+	Column2 string `json:"column_2"`
+}
+
+func (q *Queries) CountRestaurants(ctx context.Context, arg CountRestaurantsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRestaurants, arg.Column1, arg.Column2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createRestaurant = `-- name: CreateRestaurant :exec
 INSERT INTO restaurants (
     restaurantID,
@@ -131,8 +150,8 @@ func (q *Queries) GetRestaurants(ctx context.Context) ([]GetRestaurantsRow, erro
 const listRestaurants = `-- name: ListRestaurants :many
 SELECT restaurantID, externalID, restaurantName, address, category, parkingLot, created_at
 FROM restaurants
-WHERE ($1::TEXT IS NULL OR restaurantName ILIKE '%' || $1 || '%')
-  AND ($2::TEXT IS NULL OR category = $2)
+WHERE ($1::TEXT = '' OR restaurantName ILIKE '%' || $1 || '%')
+  AND ($2::TEXT = '' OR category = $2)
 ORDER BY restaurantName
 LIMIT $3 OFFSET $4
 `

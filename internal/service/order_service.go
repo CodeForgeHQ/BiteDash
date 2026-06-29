@@ -1,14 +1,15 @@
 package service
 
 import (
-	db "bitedash/internal/db/sqlc"
-	"bitedash/internal/dto"
 	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"strconv"
 	"time"
+
+	db "bitedash/internal/db/sqlc"
+	"bitedash/internal/dto"
 
 	"github.com/google/uuid"
 )

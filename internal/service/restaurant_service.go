@@ -1,13 +1,15 @@
 package service
 
 import (
+	"context"
+	"database/sql"
+	"errors"
+	"strconv"
+	"time"
+
 	db "bitedash/internal/db/sqlc"
 	"bitedash/internal/dto"
 	"bitedash/internal/external"
-	"context"
-	"database/sql"
-	"strconv"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -51,7 +53,7 @@ func (s *RestaurantService) SyncRestaurants(ctx context.Context) error {
 	return nil
 }
 
-func (s *RestaurantService) ListRestaurants(ctx context.Context, search, category string, page, limit int32) ([]db.ListRestaurantsRow, error) {
+func (s *RestaurantService) ListRestaurants(ctx context.Context, search, category string, page, limit int32) (*dto.ListRestaurantsResponse, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -61,22 +63,55 @@ func (s *RestaurantService) ListRestaurants(ctx context.Context, search, categor
 
 	offset := (page - 1) * limit
 
-	return s.queries.ListRestaurants(ctx, db.ListRestaurantsParams{
+	rows, err := s.queries.ListRestaurants(ctx, db.ListRestaurantsParams{
 		Column1: search,
 		Column2: category,
 		Limit:   limit,
 		Offset:  offset,
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	total, err := s.queries.CountRestaurants(ctx, db.CountRestaurantsParams{
+		Column1: search,
+		Column2: category,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	response := &dto.ListRestaurantsResponse{
+		Restaurants: make([]dto.RestaurantDetails, 0, len(rows)),
+		Total:       total,
+		Page:        page,
+		Limit:       limit,
+	}
+	for _, row := range rows {
+		response.Restaurants = append(response.Restaurants, dto.RestaurantDetails{
+			ID:       row.Restaurantid.String(),
+			Name:     row.Restaurantname,
+			Category: row.Category,
+			Address:  row.Address,
+			Parking:  row.Parkinglot,
+			Products: make([]dto.Product, 0),
+		})
+	}
+
+	return response, nil
 }
 
 func (s *RestaurantService) GetRestaurantDetails(ctx context.Context, restaurantID uuid.UUID) (*dto.RestaurantDetails, error) {
 	rows, err := s.queries.GetRestaurantWithProducts(ctx, restaurantID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrRestaurantNotFound
+		}
 		return nil, err
 	}
 
 	if len(rows) == 0 {
-		return nil, sql.ErrNoRows
+		return nil, ErrRestaurantNotFound
 	}
 
 	restaurant := &dto.RestaurantDetails{

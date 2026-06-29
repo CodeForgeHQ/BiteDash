@@ -1,10 +1,10 @@
 package handler
 
 import (
-	"bitedash/internal/dto"
-	"bitedash/internal/service"
 	"net/http"
 	"strconv"
+
+	"bitedash/internal/service"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -64,25 +64,7 @@ func (h *RestaurantHandler) ListRestaurants(c *gin.Context) {
 		return
 	}
 
-	resp := dto.ListRestaurantsResponse{
-		Restaurants: make([]dto.RestaurantDetails, 0, len(restaurants)),
-		Page:        int32(page),
-		Limit:       int32(limit),
-		Total:       int64(len(restaurants)),
-	}
-
-	for _, restaurant := range restaurants {
-		resp.Restaurants = append(resp.Restaurants, dto.RestaurantDetails{
-			ID:       restaurant.Restaurantid.String(),
-			Name:     restaurant.Restaurantname,
-			Category: restaurant.Category,
-			Address:  restaurant.Address,
-			Parking:  restaurant.Parkinglot,
-			Products: []dto.Product{},
-		})
-	}
-
-	c.JSON(http.StatusOK, resp)
+	c.JSON(http.StatusOK, restaurants)
 }
 
 // @Summary Get restaurant details

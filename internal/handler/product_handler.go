@@ -1,8 +1,9 @@
 package handler
 
 import (
-	"bitedash/internal/service"
 	"net/http"
+
+	"bitedash/internal/service"
 
 	"github.com/gin-gonic/gin"
 )

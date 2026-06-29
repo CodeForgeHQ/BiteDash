@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package bitedash.v1;
+
+option go_package = "internal/pb/bitedash/v1;bitedashv1";
+
+service CartService {
+  rpc AddItem(AddCartItemRequest) returns (CartResponse);
+  rpc GetCart(GetCartRequest) returns (CartResponse);
+  rpc RemoveItem(RemoveCartItemRequest) returns (CartResponse);
+  rpc ClearCart(ClearCartRequest) returns (ClearCartResponse);
+}
+
+message AddCartItemRequest {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message GetCartRequest {}
+
+message RemoveCartItemRequest {
+  string product_id = 1;
+}
+
+message ClearCartRequest {}
+
+message ClearCartResponse {
+  bool success = 1;
+}
+
+message CartResponse {
+  string cart_id = 1;
+  repeated CartItem items = 2;
+  double total_amount = 3;
+}
+
+message CartItem {
+  string product_id = 1;
+  string product_name = 2;
+  double unit_price = 3;
+  int32 quantity = 4;
+  double line_total = 5;
+}

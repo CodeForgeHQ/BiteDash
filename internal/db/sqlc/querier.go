@@ -11,6 +11,8 @@ import (
 )
 
 type Querier interface {
+	ClearCart(ctx context.Context, cartID uuid.UUID) error
+	CountRestaurants(ctx context.Context, arg CountRestaurantsParams) (int64, error)
 	CreateCart(ctx context.Context, arg CreateCartParams) (Cart, error)
 	CreateOrder(ctx context.Context, arg CreateOrderParams) error
 	CreateOrderItem(ctx context.Context, arg CreateOrderItemParams) error
@@ -33,6 +35,7 @@ type Querier interface {
 	ListOrdersByUser(ctx context.Context, userID uuid.UUID) ([]Order, error)
 	ListProductsByRestaurant(ctx context.Context, restaurantID uuid.UUID) ([]ListProductsByRestaurantRow, error)
 	ListRestaurants(ctx context.Context, arg ListRestaurantsParams) ([]ListRestaurantsRow, error)
+	RemoveCartItem(ctx context.Context, arg RemoveCartItemParams) (int64, error)
 	UpsertCartItem(ctx context.Context, arg UpsertCartItemParams) (CartItem, error)
 	UpsertProduct(ctx context.Context, arg UpsertProductParams) error
 	UpsertRestaurant(ctx context.Context, arg UpsertRestaurantParams) error

@@ -8,6 +8,7 @@ import (
 
 	"bitedash/internal/grpcserver/interceptor"
 	"bitedash/internal/grpcserver/mapper"
+	"bitedash/internal/grpcserver/validation"
 	bitedashv1 "bitedash/internal/pb/bitedash/v1"
 	"bitedash/internal/service"
 
@@ -83,13 +84,9 @@ func (h *OrderHandler) GetOrderByID(
 		return nil, status.Error(codes.Unauthenticated, "user id is missing in context")
 	}
 
-	if req.GetOrderId() == "" {
-		return nil, status.Error(codes.InvalidArgument, "order_id is required")
-	}
-
-	orderID, err := uuid.Parse(req.GetOrderId())
+	orderID, err := validation.ValidateGetOrderByIDRequest(req)
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid order_id")
+		return nil, err
 	}
 
 	order, err := h.orderService.GetOrderByID(ctx, userID, orderID)

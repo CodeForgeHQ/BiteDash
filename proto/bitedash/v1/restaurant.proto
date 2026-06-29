@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package bitedash.v1;
+
+option go_package = "internal/pb/bitedash/v1;bitedashv1";
+
+service RestaurantService {
+  rpc ListRestaurants(ListRestaurantsRequest) returns (ListRestaurantsResponse);
+  rpc GetRestaurantByID(GetRestaurantByIDRequest) returns (GetRestaurantByIDResponse);
+}
+
+message ListRestaurantsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string category = 3;
+  string search = 4;
+}
+
+message ListRestaurantsResponse {
+  repeated Restaurant restaurants = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  int32 total = 4;
+}
+
+message GetRestaurantByIDRequest {
+  string restaurant_id = 1;
+}
+
+message GetRestaurantByIDResponse {
+  Restaurant restaurant = 1;
+}
+
+message Restaurant {
+  string id = 1;
+  int32 external_id = 2;
+  string name = 3;
+  string description = 4;
+  string category = 5;
+  string address = 6;
+  bool parking_lot = 7;
+  repeated Product products = 8;
+}
+
+message Product {
+  string id = 1;
+  int32 external_id = 2;
+  string name = 3;
+  string description = 4;
+  double price = 5;
+  string image_url = 6;
+  bool is_available = 7;
+}
