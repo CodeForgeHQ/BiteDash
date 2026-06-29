@@ -32,27 +32,37 @@ func NewServer(deps Deps) *Server {
 		pool: deps.DB,
 	}
 
-	router := gin.New()
-	router.Use(
-		middleware.Recovery(),
-		middleware.RequestIDMiddleware(),
-		middleware.Logger(),
-		middleware.RateLimit(middleware.NewIPLimiter(10, 20)),
-	)
-
-	// Health check endpoint
-	router.GET("/health", s.health)
-	router.GET("/ready", s.ready)
-
-	s.setupRoutes(router, deps)
-
-	s.router = router
+	s.router = s.newRouter(deps)
 
 	return s
 }
 
 func (s *Server) Routes() http.Handler {
 	return s.router
+}
+
+func (s *Server) newRouter(deps Deps) *gin.Engine {
+	router := gin.New()
+
+	s.setupMiddleware(router)
+	s.setupHealthRoutes(router)
+	s.setupRoutes(router, deps)
+
+	return router
+}
+
+func (s *Server) setupMiddleware(router *gin.Engine) {
+	router.Use(
+		middleware.Recovery(),
+		middleware.RequestIDMiddleware(),
+		middleware.Logger(),
+		middleware.RateLimit(middleware.NewIPLimiter(10, 20)),
+	)
+}
+
+func (s *Server) setupHealthRoutes(router *gin.Engine) {
+	router.GET("/health", s.health)
+	router.GET("/ready", s.ready)
 }
 
 func (s *Server) health(c *gin.Context) {
@@ -77,7 +87,12 @@ func (s *Server) ready(c *gin.Context) {
 }
 
 func (s *Server) setupRoutes(router *gin.Engine, deps Deps) {
+	s.setupPublicRoutes(router, deps)
+	s.setupAuthRoutes(router, deps.AuthHandler)
+	s.setupProtectedRoutes(router, deps)
+}
 
+func (s *Server) setupPublicRoutes(router *gin.Engine, deps Deps) {
 	router.GET("/info/restaurants", deps.RestaurantHandler.SyncRestaurants)
 	router.GET("/restaurants", deps.RestaurantHandler.ListRestaurants)
 	router.GET("/restaurants/:restaurantID", deps.RestaurantHandler.GetRestaurantDetails)
@@ -85,17 +100,20 @@ func (s *Server) setupRoutes(router *gin.Engine, deps Deps) {
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	router.POST("/products/sync", deps.ProductHandler.SyncProducts)
+}
 
+func (s *Server) setupAuthRoutes(router *gin.Engine, authHandler *handler.AuthHandler) {
 	auth := router.Group("/auth")
 	{
-		auth.POST("/register", deps.AuthHandler.Register)
-		auth.POST("/login", deps.AuthHandler.Login)
+		auth.POST("/register", authHandler.Register)
+		auth.POST("/login", authHandler.Login)
 	}
+}
 
+func (s *Server) setupProtectedRoutes(router *gin.Engine, deps Deps) {
 	api := router.Group("/api")
 	api.Use(middleware.AuthMiddleware())
 	{
-		// Protected routes go here
 		api.GET("/me", s.me)
 	}
 
@@ -113,7 +131,6 @@ func (s *Server) setupRoutes(router *gin.Engine, deps Deps) {
 	{
 		order.POST("/make", deps.OrderHandler.MakeOrder)
 	}
-
 }
 
 func (s *Server) me(c *gin.Context) {
