@@ -13,10 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var publicMethods = map[string]struct{}{
-	"/bitedash.v1.UserService/GetUserByID": {},
-}
-
 func AuthUnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
@@ -43,7 +39,11 @@ func isPublicMethod(fullMethod string) bool {
 	switch fullMethod {
 	case "/bitedash.v1.UserService/GetUserByID",
 		"/bitedash.v1.RestaurantService/ListRestaurants",
-		"/bitedash.v1.RestaurantService/GetRestaurantByID":
+		"/bitedash.v1.RestaurantService/GetRestaurantByID",
+		"/grpc.health.v1.Health/Check",
+		"/grpc.health.v1.Health/Watch",
+		"/grpc.reflection.v1alpha.ServerReflection/ServerReflectionInfo",
+		"/grpc.reflection.v1.ServerReflection/ServerReflectionInfo":
 		return true
 	default:
 		return false

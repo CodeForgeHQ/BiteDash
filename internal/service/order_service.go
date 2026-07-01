@@ -12,7 +12,12 @@ import (
 	"bitedash/internal/dto"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
 )
+
+var orderTracer = otel.Tracer("bitedash/internal/service/order")
 
 type OrderService struct {
 	db      *sql.DB
@@ -30,6 +35,13 @@ func (s *OrderService) MakeOrder(
 	ctx context.Context,
 	userID uuid.UUID,
 ) (*dto.CheckoutResponse, error) {
+	ctx, span := orderTracer.Start(ctx, "OrderService.MakeOrder")
+	defer span.End()
+
+	span.SetAttributes(
+		attribute.String("userID", userID.String()),
+	)
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -42,6 +54,8 @@ func (s *OrderService) MakeOrder(
 
 	cart, err := qtx.GetActiveCartByUser(ctx, userID)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(otelcodes.Error, "failed to get active cart")
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrCartNotFound
 		}
@@ -154,6 +168,9 @@ func (s *OrderService) MakeOrder(
 }
 
 func (s *OrderService) ListMyOrders(ctx context.Context, userID uuid.UUID) ([]dto.OrderDTO, error) {
+	ctx, span := orderTracer.Start(ctx, "OrderService.ListMyOrders")
+	defer span.End()
+
 	orders, err := s.queries.ListOrdersByUser(ctx, userID)
 	if err != nil {
 		return nil, fmt.Errorf("list orders by user: %w", err)
@@ -178,6 +195,9 @@ func (s *OrderService) GetOrderByID(
 	userID uuid.UUID,
 	orderID uuid.UUID,
 ) (*dto.OrderDTO, error) {
+	ctx, span := orderTracer.Start(ctx, "OrderService.GetOrderByID")
+	defer span.End()
+
 	order, err := s.queries.GetOrderByID(ctx, orderID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

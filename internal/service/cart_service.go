@@ -10,7 +10,10 @@ import (
 	"bitedash/internal/dto"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
 )
+
+var cartTracer = otel.Tracer("bitedash/internal/service/cart")
 
 type CartService struct {
 	queries *db.Queries
@@ -22,6 +25,8 @@ func NewCartService(q *db.Queries, db *sql.DB) *CartService {
 }
 
 func (s *CartService) AddItem(ctx context.Context, userID uuid.UUID, req dto.AddCartItemRequest) error {
+	ctx, span := cartTracer.Start(ctx, "CartService.AddItem")
+	defer span.End()
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
@@ -91,6 +96,9 @@ func (s *CartService) AddItem(ctx context.Context, userID uuid.UUID, req dto.Add
 }
 
 func (s *CartService) GetCart(ctx context.Context, cartID uuid.UUID) (*dto.CartResponse, error) {
+	ctx, span := cartTracer.Start(ctx, "CartService.GetCart")
+	defer span.End()
+
 	cart, err := s.queries.GetActiveCartByUser(ctx, cartID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -136,6 +144,9 @@ func (s *CartService) GetCart(ctx context.Context, cartID uuid.UUID) (*dto.CartR
 }
 
 func (s *CartService) ClearCart(ctx context.Context, userID uuid.UUID) error {
+	ctx, span := cartTracer.Start(ctx, "CartService.ClearCart")
+	defer span.End()
+
 	cart, err := s.queries.GetActiveCartByUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -148,6 +159,9 @@ func (s *CartService) ClearCart(ctx context.Context, userID uuid.UUID) error {
 }
 
 func (s *CartService) RemoveCartItem(ctx context.Context, userID, productID uuid.UUID) error {
+	ctx, span := cartTracer.Start(ctx, "CartService.RemoveCartItem")
+	defer span.End()
+
 	cart, err := s.queries.GetActiveCartByUser(ctx, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

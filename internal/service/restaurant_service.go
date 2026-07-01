@@ -12,7 +12,10 @@ import (
 	"bitedash/internal/external"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
 )
+
+var restaurantTracer = otel.Tracer("bitedash/internal/service/restaurant")
 
 type RestaurantService struct {
 	queries          restaurantQuerier
@@ -27,6 +30,8 @@ func NewRestaurantService(q restaurantQuerier) *RestaurantService {
 }
 
 func (s *RestaurantService) SyncRestaurants(ctx context.Context) error {
+	ctx, span := restaurantTracer.Start(ctx, "RestaurantService.SyncRestaurants")
+	defer span.End()
 
 	apiRestaurants, err := s.fetchRestaurants(ctx)
 	if err != nil {
@@ -54,6 +59,9 @@ func (s *RestaurantService) SyncRestaurants(ctx context.Context) error {
 }
 
 func (s *RestaurantService) ListRestaurants(ctx context.Context, search, category string, page, limit int32) (*dto.ListRestaurantsResponse, error) {
+	ctx, span := restaurantTracer.Start(ctx, "RestaurantService.ListRestaurants")
+	defer span.End()
+
 	if page < 1 {
 		page = 1
 	}
@@ -102,6 +110,9 @@ func (s *RestaurantService) ListRestaurants(ctx context.Context, search, categor
 }
 
 func (s *RestaurantService) GetRestaurantDetails(ctx context.Context, restaurantID uuid.UUID) (*dto.RestaurantDetails, error) {
+	ctx, span := restaurantTracer.Start(ctx, "RestaurantService.GetRestaurantDetails")
+	defer span.End()
+
 	rows, err := s.queries.GetRestaurantWithProducts(ctx, restaurantID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

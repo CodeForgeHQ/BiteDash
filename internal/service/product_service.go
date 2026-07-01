@@ -10,7 +10,10 @@ import (
 	"bitedash/internal/external"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
 )
+
+var productTracer = otel.Tracer("bitedash/internal/service/product")
 
 type ProductService struct {
 	queries        productQuerier
@@ -25,6 +28,8 @@ func NewProductService(q productQuerier) *ProductService {
 }
 
 func (s *ProductService) SyncProducts(ctx context.Context) error {
+	ctx, span := productTracer.Start(ctx, "ProductService.SyncProducts")
+	defer span.End()
 	items, err := s.fetchMenuItems(ctx)
 	if err != nil {
 		return err

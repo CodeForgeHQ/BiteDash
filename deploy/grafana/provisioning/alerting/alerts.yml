@@ -1,0 +1,251 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: BiteDash alerts
+    folder: BiteDash
+    interval: 30s
+    rules:
+      - uid: bitedash-target-down
+        title: BiteDash target down
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: Prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              expr: up{job="bitedash"}
+              instant: true
+              range: false
+              editorMode: code
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: lt
+                    params:
+                      - 1
+                  operator:
+                    type: and
+        noDataState: Alerting
+        execErrState: Error
+        for: 1m
+        labels:
+          severity: critical
+          service: bitedash
+        annotations:
+          summary: BiteDash Prometheus target is down
+          description: Prometheus cannot scrape BiteDash /metrics.
+
+      - uid: bitedash-http-5xx-errors
+        title: HTTP 5xx errors
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: Prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              expr: sum(rate(bitedash_http_requests_total{status=~"5.."}[1m]))
+              instant: true
+              range: false
+              editorMode: code
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params:
+                      - 0
+                  operator:
+                    type: and
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        labels:
+          severity: warning
+          service: bitedash
+          protocol: http
+        annotations:
+          summary: HTTP 5xx errors detected
+          description: BiteDash is returning HTTP 5xx responses.
+
+      - uid: bitedash-grpc-errors
+        title: gRPC errors
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: Prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              expr: sum(rate(bitedash_grpc_requests_total{code!="OK"}[1m]))
+              instant: true
+              range: false
+              editorMode: code
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params:
+                      - 0
+                  operator:
+                    type: and
+        noDataState: OK
+        execErrState: Error
+        for: 1m
+        labels:
+          severity: warning
+          service: bitedash
+          protocol: grpc
+        annotations:
+          summary: gRPC errors detected
+          description: BiteDash gRPC API is returning non-OK status codes.
+
+      - uid: bitedash-http-p95-latency-high
+        title: HTTP p95 latency high
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: Prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: A
+              expr: histogram_quantile(0.95, sum(rate(bitedash_http_request_duration_seconds_bucket[5m])) by (le))
+              instant: true
+              range: false
+              editorMode: code
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params:
+                      - 0.5
+                  operator:
+                    type: and
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        labels:
+          severity: warning
+          service: bitedash
+          protocol: http
+        annotations:
+          summary: HTTP p95 latency is high
+          description: HTTP p95 latency is higher than 500ms.
+
+      - uid: bitedash-grpc-p95-latency-high
+        title: gRPC p95 latency high
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: Prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: A
+              expr: histogram_quantile(0.95, sum(rate(bitedash_grpc_request_duration_seconds_bucket[5m])) by (le))
+              instant: true
+              range: false
+              editorMode: code
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - type: query
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    type: last
+                    params: []
+                  evaluator:
+                    type: gt
+                    params:
+                      - 0.5
+                  operator:
+                    type: and
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        labels:
+          severity: warning
+          service: bitedash
+          protocol: grpc
+        annotations:
+          summary: gRPC p95 latency is high
+          description: gRPC p95 latency is higher than 500ms.

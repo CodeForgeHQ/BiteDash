@@ -11,7 +11,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgconn"
+	"go.opentelemetry.io/otel"
 )
+
+var authTracer = otel.Tracer("bitedash/internal/service/auth")
 
 type AuthService struct {
 	queries authQuerier
@@ -22,6 +25,9 @@ func NewAuthService(q authQuerier) *AuthService {
 }
 
 func (s *AuthService) Register(ctx context.Context, email, password string) (string, error) {
+	ctx, span := authTracer.Start(ctx, "AuthService.Register")
+	defer span.End()
+
 	hash, err := auth.HashPassword(password)
 	if err != nil {
 		return "", err
@@ -60,6 +66,9 @@ func (s *AuthService) Register(ctx context.Context, email, password string) (str
 }
 
 func (s *AuthService) Login(ctx context.Context, email, password string) (string, error) {
+	ctx, span := authTracer.Start(ctx, "AuthService.Login")
+	defer span.End()
+
 	user, err := s.queries.GetUserByEmail(ctx, email)
 	if err != nil {
 		return "", ErrInvalidCredentials
@@ -79,6 +88,9 @@ func (s *AuthService) Login(ctx context.Context, email, password string) (string
 }
 
 func (s *AuthService) GetUserByID(ctx context.Context, id uuid.UUID) (db.User, error) {
+	ctx, span := authTracer.Start(ctx, "AuthService.GetUserByID")
+	defer span.End()
+
 	user, err := s.queries.GetUserByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

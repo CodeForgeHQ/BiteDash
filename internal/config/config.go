@@ -3,16 +3,20 @@ package config
 import (
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
-	AppPort     string
-	DatabaseURL string
-	JWTSecret   string
-	LogLevel    string
-	GRPCPort    string
+	AppPort                  string
+	DatabaseURL              string
+	JWTSecret                string
+	LogLevel                 string
+	GRPCPort                 string
+	OTELEnabled              bool
+	OTELServiceName          string
+	OTELExporterOTLPEndpoint string
 }
 
 func LoadConfig() (*Config, error) {
@@ -22,11 +26,14 @@ func LoadConfig() (*Config, error) {
 	}
 
 	config := &Config{
-		AppPort:     os.Getenv("APP_PORT"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
-		LogLevel:    os.Getenv("LOG_LEVEL"),
-		GRPCPort:    os.Getenv("GRPC_PORT"),
+		AppPort:                  os.Getenv("APP_PORT"),
+		DatabaseURL:              os.Getenv("DATABASE_URL"),
+		JWTSecret:                os.Getenv("JWT_SECRET"),
+		LogLevel:                 os.Getenv("LOG_LEVEL"),
+		GRPCPort:                 os.Getenv("GRPC_PORT"),
+		OTELEnabled:              getEnvBool("OTEL_ENABLED", false),
+		OTELServiceName:          os.Getenv("OTEL_SERVICE_NAME"),
+		OTELExporterOTLPEndpoint: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
 	}
 
 	if config.AppPort == "" {
@@ -57,4 +64,13 @@ func MustLoadConfig() *Config {
 		os.Exit(1)
 	}
 	return config
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	if value == "" {
+		return defaultValue
+	}
+
+	return value == "true" || value == "1" || value == "yes"
 }

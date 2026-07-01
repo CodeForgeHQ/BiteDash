@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
 )
@@ -33,6 +34,13 @@ func LoggingUnaryInterceptor(logger *slog.Logger) grpc.UnaryServerInterceptor {
 
 		if userID, ok := UserIDFromContext(ctx); ok {
 			attrs = append(attrs, "user_id", userID.String())
+		}
+
+		if spanCtx := trace.SpanContextFromContext(ctx); spanCtx.IsValid() {
+			attrs = append(attrs,
+				"trace_id", spanCtx.TraceID().String(),
+				"span_id", spanCtx.SpanID().String(),
+			)
 		}
 
 		if err != nil {
@@ -80,6 +88,13 @@ func LoggingStreamInterceptor(logger *slog.Logger) grpc.StreamServerInterceptor 
 
 		if userID, ok := UserIDFromContext(ctx); ok {
 			attrs = append(attrs, "user_id", userID.String())
+		}
+
+		if spanCtx := trace.SpanContextFromContext(ctx); spanCtx.IsValid() {
+			attrs = append(attrs,
+				"trace_id", spanCtx.TraceID().String(),
+				"span_id", spanCtx.SpanID().String(),
+			)
 		}
 
 		if err != nil {

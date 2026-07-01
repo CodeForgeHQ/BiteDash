@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"bitedash/internal/handler"
 	"bitedash/internal/middleware"
@@ -57,12 +58,14 @@ func (s *Server) setupMiddleware(router *gin.Engine) {
 		middleware.RequestIDMiddleware(),
 		middleware.Logger(),
 		middleware.RateLimit(middleware.NewIPLimiter(10, 20)),
+		middleware.MetricsMiddleware(),
 	)
 }
 
 func (s *Server) setupHealthRoutes(router *gin.Engine) {
 	router.GET("/health", s.health)
 	router.GET("/ready", s.ready)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 }
 
 func (s *Server) health(c *gin.Context) {

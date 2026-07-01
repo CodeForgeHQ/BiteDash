@@ -14,17 +14,21 @@ import (
 	"time"
 
 	"bitedash/internal/config"
+	"bitedash/internal/metrics"
 	authpkg "bitedash/internal/pkg/auth"
+	"bitedash/internal/tracing"
 
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"google.golang.org/grpc"
 )
 
 type App struct {
-	cfg          *config.Config
-	diContainer  *diContainer
-	httpServer   *http.Server
-	grpcServer   *grpc.Server
-	grpcListener net.Listener
+	cfg             *config.Config
+	diContainer     *diContainer
+	httpServer      *http.Server
+	grpcServer      *grpc.Server
+	grpcListener    net.Listener
+	shutdownTracing func(context.Context) error
 }
 
 func Build(ctx context.Context) (*App, error) {
@@ -42,9 +46,11 @@ func Build(ctx context.Context) (*App, error) {
 	}
 
 	a := &App{cfg: cfg, diContainer: container}
+	metrics.Register()
+	a.initTracing()
 	a.httpServer = &http.Server{
 		Addr:         ":" + cfg.AppPort,
-		Handler:      container.httpServer.Routes(),
+		Handler:      otelhttp.NewHandler(container.httpServer.Routes(), "http"),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -124,10 +130,33 @@ func (a *App) shutdown() error {
 		a.grpcServer.Stop()
 	}
 
+	if a.shutdownTracing != nil {
+		if err := a.shutdownTracing(context.Background()); err != nil {
+			slog.Error("failed to shutdown tracing", "error", err)
+		}
+	}
+
 	dbErr := a.diContainer.Close()
 	if err := errors.Join(httpErr, dbErr); err != nil {
 		return fmt.Errorf("shutdown application: %w", err)
 	}
 	slog.Info("application stopped gracefully")
 	return nil
+}
+
+func (a *App) initMetrics() {
+	metrics.Register()
+}
+
+func (a *App) initTracing() {
+	shutdown, err := tracing.Init(context.Background(), tracing.Config{
+		Enabled:     a.cfg.OTELEnabled,
+		ServiceName: a.cfg.OTELServiceName,
+		Endpoint:    a.cfg.OTELExporterOTLPEndpoint,
+	})
+	if err != nil {
+		panic("failed to init tracing: " + err.Error())
+	}
+
+	a.shutdownTracing = shutdown
 }

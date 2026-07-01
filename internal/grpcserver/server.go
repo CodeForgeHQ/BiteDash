@@ -7,7 +7,11 @@ import (
 	"bitedash/internal/grpcserver/interceptor"
 	bitedashv1 "bitedash/internal/pb/bitedash/v1"
 
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health"
+	healthpb "google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/reflection"
 )
 
 type Deps struct {
@@ -23,15 +27,18 @@ type Server struct {
 
 func NewServer(deps Deps) *Server {
 	grpcServer := grpc.NewServer(
+		grpc.StatsHandler(otelgrpc.NewServerHandler()),
 		grpc.ChainUnaryInterceptor(
 			interceptor.RecoveryUnaryInterceptor(slog.Default()),
 			interceptor.RequestIDUnaryInterceptor(),
+			interceptor.MetricsUnaryInterceptor(),
 			interceptor.AuthUnaryInterceptor(),
 			interceptor.LoggingUnaryInterceptor(slog.Default()),
 		),
 		grpc.ChainStreamInterceptor(
 			interceptor.RecoveryStreamInterceptor(slog.Default()),
 			interceptor.RequestIDStreamInterceptor(),
+			interceptor.MetricsStreamInterceptor(),
 			interceptor.AuthStreamInterceptor(),
 			interceptor.LoggingStreamInterceptor(slog.Default()),
 		),
@@ -41,9 +48,41 @@ func NewServer(deps Deps) *Server {
 	bitedashv1.RegisterOrderServiceServer(grpcServer, deps.OrderHandler)
 	bitedashv1.RegisterRestaurantServiceServer(grpcServer, deps.RestaurantHandler)
 	bitedashv1.RegisterCartServiceServer(grpcServer, deps.CartHandler)
+
+	healthServer := health.NewServer()
+
+	healthServer.SetServingStatus(
+		"",
+		healthpb.HealthCheckResponse_SERVING,
+	)
+
+	healthServer.SetServingStatus(
+		"bitedash.v1.UserService",
+		healthpb.HealthCheckResponse_SERVING,
+	)
+
+	healthServer.SetServingStatus(
+		"bitedash.v1.OrderService",
+		healthpb.HealthCheckResponse_SERVING,
+	)
+
+	healthServer.SetServingStatus(
+		"bitedash.v1.RestaurantService",
+		healthpb.HealthCheckResponse_SERVING,
+	)
+
+	healthServer.SetServingStatus(
+		"bitedash.v1.CartService",
+		healthpb.HealthCheckResponse_SERVING,
+	)
+
+	healthpb.RegisterHealthServer(grpcServer, healthServer)
+	reflection.Register(grpcServer)
+
 	return &Server{
 		server: grpcServer,
 	}
+
 }
 
 func (s *Server) Server() *grpc.Server {
