@@ -1,4 +1,14 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: bitedash-frontend
+    ports:
+      - "3001:80"
+    depends_on:
+      - api
+
   api:
     build:
       context: .

@@ -136,13 +136,17 @@ func (s *RestaurantService) GetRestaurantDetails(ctx context.Context, restaurant
 
 	for _, row := range rows {
 		if row.ProductID.Valid {
-			restaurant.Products = append(restaurant.Products, dto.Product{
+			product := dto.Product{
 				ID:          row.ProductID.UUID.String(),
 				Name:        row.ProductName.String,
 				Description: row.Description.String,
 				Price:       parsePrice(row.Price),
 				Available:   row.IsAvailable.Bool,
-			})
+			}
+			if row.ImageUrl.Valid {
+				product.ImageURL = row.ImageUrl.String
+			}
+			restaurant.Products = append(restaurant.Products, product)
 		}
 	}
 

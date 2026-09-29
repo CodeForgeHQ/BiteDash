@@ -23,7 +23,8 @@ SELECT
     p.name AS product_name,
     p.description,
     p.price,
-    p.is_available
+    p.is_available,
+    p.image_url
 FROM restaurants r
 LEFT JOIN products p
 ON p.restaurant_id = r.restaurantID
@@ -41,6 +42,7 @@ type GetRestaurantWithProductsRow struct {
 	Description    sql.NullString `json:"description"`
 	Price          sql.NullString `json:"price"`
 	IsAvailable    sql.NullBool   `json:"is_available"`
+	ImageUrl       sql.NullString `json:"image_url"`
 }
 
 func (q *Queries) GetRestaurantWithProducts(ctx context.Context, restaurantid uuid.UUID) ([]GetRestaurantWithProductsRow, error) {
@@ -63,6 +65,7 @@ func (q *Queries) GetRestaurantWithProducts(ctx context.Context, restaurantid uu
 			&i.Description,
 			&i.Price,
 			&i.IsAvailable,
+			&i.ImageUrl,
 		); err != nil {
 			return nil, err
 		}

@@ -9,7 +9,8 @@ SELECT
     p.name AS product_name,
     p.description,
     p.price,
-    p.is_available
+    p.is_available,
+    p.image_url
 FROM restaurants r
 LEFT JOIN products p
 ON p.restaurant_id = r.restaurantID

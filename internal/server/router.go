@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
@@ -53,6 +54,31 @@ func (s *Server) newRouter(deps Deps) *gin.Engine {
 }
 
 func (s *Server) setupMiddleware(router *gin.Engine) {
+	router.Use(cors.New(cors.Config{
+		AllowOrigins: []string{
+			"http://localhost:3001",
+			"http://localhost:5173",
+		},
+		AllowMethods: []string{
+			"GET",
+			"POST",
+			"PUT",
+			"PATCH",
+			"DELETE",
+			"OPTIONS",
+		},
+		AllowHeaders: []string{
+			"Origin",
+			"Content-Type",
+			"Authorization",
+			"X-Request-ID",
+		},
+		ExposeHeaders: []string{
+			"X-Request-ID",
+		},
+		AllowCredentials: false,
+	}))
+
 	router.Use(
 		middleware.Recovery(),
 		middleware.RequestIDMiddleware(),

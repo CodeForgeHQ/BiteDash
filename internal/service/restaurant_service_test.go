@@ -84,6 +84,7 @@ func TestRestaurantService_GetRestaurantDetails_success(t *testing.T) {
 					Description:    sql.NullString{String: "Classic", Valid: true},
 					Price:          sql.NullString{String: "12.50", Valid: true},
 					IsAvailable:    sql.NullBool{Bool: true, Valid: true},
+					ImageUrl:       sql.NullString{String: "https://example.com/pizza.png", Valid: true},
 				},
 			}, nil
 		},
@@ -98,6 +99,7 @@ func TestRestaurantService_GetRestaurantDetails_success(t *testing.T) {
 	assert.Equal(t, productID.String(), details.Products[0].ID)
 	assert.InDelta(t, 12.5, details.Products[0].Price, 0.001)
 	assert.True(t, details.Products[0].Available)
+	assert.Equal(t, "https://example.com/pizza.png", details.Products[0].ImageURL)
 }
 
 func TestRestaurantService_GetRestaurantDetails_notFound(t *testing.T) {
